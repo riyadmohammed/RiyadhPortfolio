@@ -1,0 +1,16 @@
+stages:
+- template: check_pr_title_build_environment_stage.yml
+  parameters:
+    buildEnvironment: '$(buildTitleEnv)'
+- template: common_stage.yml
+  parameters:
+      StageDependencies: ['CheckPRTitleBuildEnvironment']
+- template: build_release_android_stage.yml
+  parameters:
+      StageDependencies: ['CommonStage', 'CheckPRTitleBuildEnvironment']
+- template: build_release_ios_stage.yml
+  parameters:
+      StageDependencies: ['CommonStage', 'CheckPRTitleBuildEnvironment']
+- template: cleanup_source_stage.yml
+  parameters:
+    StageDependencies: [ 'IOSBuildStage', 'DistributeFirebaseAppDistributionStage', 'DistributeAppCenterStage' ]

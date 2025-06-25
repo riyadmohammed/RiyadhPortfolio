@@ -1,0 +1,63 @@
+parameters:
+  - name: StageDependencies
+    type: object
+    default: []
+
+stages:
+  - stage: ValidateBuildAndroidOnlyStage
+    dependsOn: ${{ parameters.StageDependencies }}
+    condition: succeeded()
+    jobs:
+      - job: BuildAndroid
+        timeoutInMinutes: 30
+        variables:
+          - name: testingTitle
+            value: $[stageDependencies.CheckTitleStage.GetPRTitle.outputs['SetTitle.testingTitle']]
+        steps:
+        - task: CmdLine@2
+          displayName: "Check prTitle variable still there"
+          inputs:
+            script: |
+             echo $(prTitle)
+        - task: CmdLine@2
+          displayName: "Check testingTitle variable still there"
+          inputs:
+            script: |
+             echo $(testingTitle)
+        - task: DownloadSecureFile@1
+          name: keyprop
+          displayName: Download key properties file
+          inputs:
+            secureFile: $(android_keyPropFile)
+        - task: DownloadSecureFile@1
+          name: key
+          displayName: Download signing key
+          inputs:
+            secureFile: $(android_signingKeyFile)
+        - task: Bash@3
+          displayName: Copy config files
+          inputs:
+            targetType: 'inline'
+            script: |
+              cp $(keyprop.secureFilePath) $(Build.SourcesDirectory)/android/$(android_keyPropFile)
+              cp $(key.secureFilePath) $(Build.SourcesDirectory)/android/app/$(android_signingKeyFile)
+              
+              echo "key.properties copied to $(Build.SourcesDirectory)/android/$(android_keyPropFile)"
+              echo "key.jks copied to $(Build.SourcesDirectory)/android/app/$(android_signingKeyFile)"
+        - task: CmdLine@2
+          displayName: 'jenv 17.0.11'
+          inputs:
+            script: 'echo Y | jenv local 17.0.11'
+        - task: CmdLine@2
+          displayName: 'JDK Setup'
+          inputs:
+            script: 'echo Y | java --version'
+        - task: FlutterBuild@0
+          displayName: Build Android
+          inputs:
+            target: 'aab'
+            projectDirectory: '.'
+            flutterDirectory: '/Users/user/fvm/versions/$(flutterVersion)/bin'
+            buildFlavour: '$(flavor)'
+            entryPoint: 'lib/main.dart'
+            extraArgs: '--dart-define-from-file env/$(flavor)-env.json --verbose'

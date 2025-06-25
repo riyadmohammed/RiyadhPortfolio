@@ -1,0 +1,54 @@
+parameters:
+- name: StageDependencies
+  type: object
+  default: []
+
+stages:
+  - stage: IOSBuildStage
+    dependsOn: ${{ parameters.StageDependencies }}
+    condition: succeeded()
+    jobs:
+    - job: BuildiOS
+      timeoutInMinutes: 30
+      steps:
+      - task: InstallAppleCertificate@2
+        displayName: Install certificate
+        inputs:
+          certSecureFile: '$(ios_distributionFileName)'
+          certPwd: '$(ios_distributionFilePassword)'
+          keychain: 'temp'
+          opensslPkcsArgs: '-legacy'
+
+      - task: InstallAppleProvisioningProfile@1
+        displayName: Install provisioning file
+        inputs:
+          provisioningProfileLocation: 'secureFiles'
+          provProfileSecureFile: '$(flavor)_$(ios_releaseType).mobileprovision'
+          removeProfile: false
+      - task: FlutterBuild@0
+        displayName: Build iOS
+        inputs:
+           target: 'ios'
+           projectDirectory: '.'
+           flutterDirectory: '/Users/user/fvm/versions/$(flutterVersion)/bin'
+           buildFlavour: '$(flavor)'
+           entryPoint: 'lib/main.dart'
+           iosCodesign: false
+           extraArgs: '--dart-define-from-file env/$(flavor)-env.json'
+
+      - task: Bash@3
+        displayName: Build xcarchive
+        inputs: 
+          targetType: inline 
+          script: |
+            /Users/user/fvm/versions/$(flutterVersion)/bin/flutter build xcarchive --no-codesign --target=lib/main.dart --flavor=$(flavor) --dart-define-from-file env/$(flavor)-env.json
+      - task: Bash@3
+        displayName: Export ipa
+        inputs: 
+          targetType: inline 
+          script: |
+            xcodebuild -exportArchive -archivePath build/ios/archive/Runner.xcarchive -exportOptionsPlist ios/$(flavor)ExportOptions.plist -exportPath build/ios/ipa            
+     
+      - template: mobsf_template.yml
+        parameters:
+          osType: "ios"

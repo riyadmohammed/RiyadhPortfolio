@@ -1,0 +1,87 @@
+parameters:
+- name: StageDependencies
+  type: object
+  default: []
+
+stages:
+  - stage: FlutterCleanStage
+    dependsOn: ${{ parameters.StageDependencies }}
+    condition: succeeded()
+    jobs:
+    - job: CleanFlutterCache
+      timeoutInMinutes: 5
+      variables:
+        - name: testingTitle
+          value: $[stageDependencies.CheckTitleStage.GetPRTitle.outputs['SetTitle.testingTitle']]
+      steps:
+      - task: CmdLine@2
+        displayName: 'Use Flutter specific version'
+        inputs:
+          script: 'echo Y | fvm use $(flutterVersion)'
+      - task: FlutterCommand@0
+        displayName: "Flutter Clean"
+        inputs:
+          projectDirectory: '.'
+          flutterDirectory: '/Users/user/fvm/versions/$(flutterVersion)/bin'
+          arguments: 'clean'
+  - stage: CommonStage
+    dependsOn: FlutterCleanStage
+    condition: succeeded()
+    jobs:   
+    - job: CleanSteps
+      timeoutInMinutes: 5
+      workspace:
+        clean: all
+    - job: RunCommonSteps
+      timeoutInMinutes: 5
+      steps:
+      - task: FlutterEnv@0
+        inputs:
+          pathType: 'customPath'
+          customPath: '/Users/user/fvm/versions/$(flutterVersion)'
+      - task: FlutterAnalyzeTask@0
+        displayName: Run linter
+        inputs:
+          projectDirectory: '.'
+      - task: FlutterTest@0
+        displayName: Run tests
+        inputs:
+          projectDirectory: '.'
+          generateCodeCoverageReport: true
+      - task: CopyFiles@2
+        displayName: Copy code coverage file to :$(build.artifactStagingDirectory)
+        inputs:
+          sourceFolder: '$(Agent.BuildDirectory)'
+          contents: '**/coverage/**'
+          targetFolder: '$(Build.artifactStagingDirectory)'
+          flattenFolders: true
+      - task: PublishBuildArtifacts@1
+        displayName: Publish lcov file to pipeline container
+        inputs:
+          PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+          ArtifactName: 'lcov'
+          publishLocation: 'Container'
+      - task: CmdLine@2
+        displayName: convert lcov to readable xml
+        inputs:
+          script: |
+            echo start cobertura convert now
+            fvm dart run cobertura convert
+      - task: CopyFiles@2
+        displayName: Copy converted xml file to :$(build.artifactStagingDirectory)
+        inputs:
+          sourceFolder: '$(Agent.BuildDirectory)'
+          contents: '**/coverage/cobertura.xml'
+          targetFolder: '$(Build.artifactStagingDirectory)'
+          flattenFolders: true
+      - task: PublishBuildArtifacts@1
+        displayName: Publish covertura file to pipeline container
+        inputs:
+          PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+          ArtifactName: 'cobertura'
+          publishLocation: 'Container'
+      - task: PublishCodeCoverageResults@1
+        inputs:
+          codeCoverageTool: 'Cobertura'
+          summaryFileLocation: '$(Build.ArtifactStagingDirectory)/cobertura.xml'
+          

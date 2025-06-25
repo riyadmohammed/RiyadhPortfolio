@@ -1,0 +1,17 @@
+trigger: none
+
+variables:
+  - group: StagingCredentialGroup
+
+pool:
+  name: "Mobile Pool"
+
+stages:
+- template: templates/check_title_stage.yml
+- template: templates/common_stage.yml
+  parameters:
+    StageDependencies: ['CheckTitleStage']
+- template: templates/validate_stage.yml
+  parameters:
+    StageDependencies: ['CommonStage']
+- template: templates/cleanup_source_stage.yml

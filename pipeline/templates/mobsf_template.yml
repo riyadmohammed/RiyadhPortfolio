@@ -1,0 +1,75 @@
+parameters:
+- name: osType
+  default: 'android'
+
+steps:
+  - task: CmdLine@2
+    displayName: MobSF Process
+    name: MobSFProcess
+    inputs:
+      script: |
+
+        filePath=$( find $(Agent.BuildDirectory) -name "*.apk")
+        if [ -z "$filePath" ]; then 
+          filePath=$( find $(Agent.BuildDirectory) -name "*.ipa")
+        fi
+
+        echo "File - $filePath"
+
+        if [ -z "$filePath" ]; then
+          echo "##error APK/IPA Not Found"
+          exit 1
+        fi
+
+        echo "Process application upload . . . . "
+
+        response=$(curl -F file=@$filePath $(MOBSF_API_UPLOAD) -H "Authorization:$(MOBSF_AUTH)")
+
+        if [[ "$filePath" == *" "* ]]; then
+            # Handle file paths with spaces
+            echo "The file path contains spaces."
+            response=$(curl -F "file=@$filePath" $(MOBSF_API_UPLOAD) -H "Authorization:$(MOBSF_AUTH)")
+        fi
+
+        echo "response - $response"
+
+        hash=$(echo "$response" | jq -r '.hash')
+        file_name=$(echo "$response" | jq -r '.file_name')
+        scan_type=$(echo "$response" | jq -r '.scan_type')
+
+        echo "Hash - $hash"
+        echo "File Name - $file_name"
+        echo "Scan Type - $scan_type"
+
+        if [ "$hash" == "null"]; then
+          echo "##[error] Hash value is null, please check application is correct file type \n $reponse"
+          exit 1
+        fi
+
+        if [ -z "$hash" ]; then
+          echo "##[error] Hash value is empty, please check application is correct file type \n $reponse"
+          exit 1
+        fi
+
+        echo "Scan in-progress . . . . "
+        scanResponse=$(curl -X POST --url $(MOBSF_API_SCAN) --data "scan_type=$scan_type&file_name=$file_name&hash=$hash" -H "Authorization:$(MOBSF_AUTH)")
+
+        echo "$scanResponse"
+
+        echo "Download PDF . . . ."
+        
+        pdfResponse=$(curl -o "scan_result_${{ parameters.osType }}.pdf" $(MOBSF_API_PDF_V2) --data "hash=$hash" -H "Authorization:$(MOBSF_AUTH)")
+
+        echo "$pdfResponse"
+
+  - task: CopyFiles@2
+    displayName: "Update PDF Result"
+    inputs:
+      contents: "**/scan_result_${{ parameters.osType }}.pdf"
+      targetFolder: "$(Build.artifactStagingDirectory)"
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: "$(Build.artifactStagingDirectory)"
+      ArtifactName: "drop"
+      publishLocation: "Container"

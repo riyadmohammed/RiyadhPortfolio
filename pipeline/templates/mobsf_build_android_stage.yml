@@ -1,0 +1,51 @@
+parameters:
+- name: StageDependencies
+  type: object
+  default: []
+
+stages: 
+  - stage: AndroidBuildStage
+    dependsOn: ${{ parameters.StageDependencies }}
+    condition: succeeded()
+    jobs:
+    - job: CleanSteps
+      timeoutInMinutes: 5
+      workspace:
+        clean: all
+    - job: BuildAndroid
+      timeoutInMinutes: 30
+      steps:
+      - task: DownloadSecureFile@1
+        name: keyprop
+        displayName: Download key properties file
+        inputs:
+          secureFile: $(android_keyPropFile)
+      - task: DownloadSecureFile@1
+        name: key
+        displayName: Download signing key
+        inputs:
+          secureFile: $(android_signingKeyFile)
+      - task: Bash@3
+        displayName: Copy config files
+        inputs:
+          targetType: 'inline'
+          script: |
+            cp $(keyprop.secureFilePath) $(Build.SourcesDirectory)/android/$(android_keyPropFile)
+            cp $(key.secureFilePath) $(Build.SourcesDirectory)/android/app/$(android_signingKeyFile)
+            
+            echo "key.properties copied to $(Build.SourcesDirectory)/android/$(android_keyPropFile)"
+            echo "key.jks copied to $(Build.SourcesDirectory)/android/app/$(android_signingKeyFile)"
+
+      - task: FlutterBuild@0
+        displayName: Build Android APK
+        inputs:
+          target: 'apk'
+          projectDirectory: '.'
+          flutterDirectory: '/Users/user/fvm/versions/$(flutterVersion)/bin'
+          buildFlavour: '$(flavor)'
+          entryPoint: 'lib/main.dart'
+          extraArgs: '--dart-define-from-file env/$(flavor)-env.json'
+
+      - template: mobsf_template.yml
+        parameters:
+          osType: "android"

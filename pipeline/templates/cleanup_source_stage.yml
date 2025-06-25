@@ -1,0 +1,14 @@
+ stages: 
+   - stage: CleanupStage
+     jobs: 
+     - job: CleanupSteps
+       timeoutInMinutes: 5
+       steps:
+       - task: PowerShell@2
+         displayName: 'Cleanup source folder'
+         inputs:
+            targetType: 'inline'
+            script: 'Get-ChildItem -Recurse | foreach { Write-Host $_.FullName ; Remove-Item $_.FullName -Force -Recurse }'
+            failOnStderr: true
+            pwsh: true
+            workingDirectory: '$(Build.SourcesDirectory)'

@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "542211545657",
+    "project_id": "flutter-starter-kit-77ebd",
+    "storage_bucket": "flutter-starter-kit-77ebd.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:542211545657:android:414cfc82ffe5859a8bcbe8",
+        "android_client_info": {
+          "package_name": "com.dumbdumb.my"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCTz8b655tJ5ojaE-lbqDSVSGDPhD4TEz0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:542211545657:android:0bf2301aa9ea76f08bcbe8",
+        "android_client_info": {
+          "package_name": "com.dumbdumb.my.stag"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCTz8b655tJ5ojaE-lbqDSVSGDPhD4TEz0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

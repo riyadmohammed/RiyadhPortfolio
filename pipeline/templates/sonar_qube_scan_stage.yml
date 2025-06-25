@@ -1,0 +1,60 @@
+parameters:
+  - name: StageDependencies
+    type: object
+    default: []
+
+stages:
+  - stage: SonarQubeScanStage
+    dependsOn: ${{ parameters.StageDependencies }}
+    condition: succeeded()
+    jobs:
+      - job: SonarScan
+        timeoutInMinutes: 15
+        steps:
+        - task: CmdLine@2
+          displayName: 'Flutter SDK: Select FVM version'
+          inputs:
+            script: 'echo Y | fvm use $(flutterVersion)'
+        - task: CmdLine@2
+          displayName: 'jenv setup'
+          inputs:
+            script: 'echo Y | jenv local $(javaVersion)'
+        - task: CmdLine@2
+          displayName: 'JDK check'
+          inputs:
+            script: 'echo Y | java --version'
+        - task: FlutterEnv@0
+          displayName: 'Flutter SDK: Configure SDK path'
+          inputs:
+            pathType: 'customPath'
+            customPath: '/Users/user/fvm/versions/$(flutterVersion)'
+        - task: SonarQubePrepare@5
+          inputs:
+            SonarQube: $(sonarQubeServiceName)
+            scannerMode: 'CLI'
+            configMode: 'manual'
+            cliProjectKey: $(sonarQubeProjectKey)
+            cliProjectVersion: '1.0.0'
+            cliSources: '.'
+            extraProperties: |
+              sonar.sources=lib
+              sonar.lang.patterns.dart=**/*.dart
+              sonar.tests=test
+              sonar.exclusions=**/generated/**, **/assets.g.dart
+              sonar.sourceEncoding=UTF-8
+              sonar.qualitygate.wait=true
+        - task: Bash@3
+          displayName: Set Sonar Qube params
+          inputs:
+            targetType: 'inline'
+            script: 'export SONAR_SCANNER_OPTS="-Xmx512m"'
+        - bash: |
+            FILTERED_PARAMS=$(echo $SONARQUBE_SCANNER_PARAMS | sed 's/"sonar.branch.name":"[\w/,-.]*"\,//g')
+            echo "##vso[task.setvariable variable=SONARQUBE_SCANNER_PARAMS]$FILTERED_PARAMS"
+        - task: SonarQubeAnalyze@5
+          displayName: Run analyze
+        - task: SonarQubePublish@5
+          displayName: Run publish
+          inputs:
+            pollingTimeoutSec: '300'
+          

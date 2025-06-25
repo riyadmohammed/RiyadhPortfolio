@@ -1,0 +1,139 @@
+#version 1.0.0
+
+trigger:
+  branches:
+    include:
+      - master
+      - dev*
+
+pool: Mobile Pool
+
+stages:
+  - stage: TicketTaggingProcess
+    displayName: Ticketings tagging process
+    jobs:
+    - job: TicketTaggingProcessJob
+      steps:
+        - script: |
+            # Get the last commit message of the branch
+            lastCommitMessage=$(git log -1 --pretty=%B)
+            echo "Last Commit Message: $lastCommitMessage"
+            
+            # Checks if the last commit message contains the phrase 'Build : '
+            if echo "$lastCommitMessage" | grep -qE '\[Build\]'; then
+              echo "Last Commit Message contains '[Build]'"
+            else
+              echo "Last Commit Message does not contain '[Build]'. Exiting the pipeline."
+              exit 0
+            fi
+            
+            prTitleKeyword="[Build]"
+            getPullRequestsUrl="$(System.TeamFoundationCollectionUri)/$(System.TeamProject)/_apis/git/repositories/$(Build.Repository.ID)/pullrequests?searchCriteria.status=completed&searchCriteria.targetRefName=$(Build.SourceBranch)&api-version=7.1-preview.1"
+            getPullRequestsUrl=$(echo $getPullRequestsUrl | sed 's/ /%20/g')
+            
+            echo "Calling Get PRs Api"
+            
+            prs=$(curl -s -H "Authorization: Bearer $(System.AccessToken)" -H "Accept: application/json" $getPullRequestsUrl)
+            
+            echo "-- prs response: $prs"
+            
+            # Checks if responses is not null
+            if [ -n "$prs" ]; then
+              echo "prs response: $prs"
+              # Extract PR titles and numbers containing the keyword
+              prsWithKeyword=$(echo "$prs" | jq --arg keyword "$prTitleKeyword" '.value | map(select(.title | contains($keyword)))')
+            
+                # Gets the latest PR with the keyword
+              currentBuildPR=$(echo "$prsWithKeyword" | jq -r '.[0]')
+              prevBuildPR=$(echo "$prsWithKeyword" | jq -r '.[1]')
+            
+                echo "current build PR 1 : $currentBuildPR" 
+            
+              if [ "$currentBuildPR" != "null" ]; then
+            
+                  currentBuildPRTitle=$(echo "$currentBuildPR" | jq -r '.title')
+            
+                  echo "current build or title 0: $currentBuildPRTitle" 
+      
+
+                  # # Convert currentBuildPRTitle into an array
+                  IFS=':' read -r -a versions <<< "$currentBuildPRTitle"
+                  echo "convert to array "
+              fi
+            
+              if [ "$prevBuildPR" != "null" ]; then
+                prevBuildPRId=$(echo "$prevBuildPR" | jq -r '.pullRequestId')
+                echo "Previous build PR with title containing '$prTitleKeyword' has ID: $prevBuildPRId"
+            
+                if [ -n "$prevBuildPRId" ]; then
+                  prsAfterPrevBuildPR=$(echo "$prs" | jq --arg prevBuildPRId "$prevBuildPRId" '.value | map(select(.pullRequestId > ($prevBuildPRId | tonumber)))')
+                  if [ "$prsAfterPrevBuildPR" != "[]" ]; then
+                    echo "Pull Requests created after PR with ID $prevBuildPRId:"
+                    echo "$prsAfterPrevBuildPR" | jq -r '.[] | "PR #\(.pullRequestId): \(.title)"'
+
+                    prsRequiredTag=$(echo "$prsAfterPrevBuildPR" | jq -r '.[] | .pullRequestId')
+
+                  else
+                    echo "No prev build PRs found after PR with ID $prevBuildPRId."
+            
+                  fi
+                fi
+            
+              else
+                echo "No previous PRs found with title containing '$prTitleKeyword'."
+                # Displays the list of PRs
+                echo "List of PRs:"
+                echo "-- prs response: $prs"
+            
+                if [ "$prs" != "[]" ]; then
+            
+                  echo "All initial pull requests"
+                  echo "$prs" | jq -r '.value[] | "PR #\(.pullRequestId): \(.title)"'
+
+                  prsRequiredTag=$(echo "$prs" | jq -r '.value[] | .pullRequestId')
+
+                fi
+              fi
+
+            if [ -n "$prsRequiredTag" ]; then
+                # Loop through each PR and tag their associated work items
+                for pr in $prsRequiredTag
+                  do
+
+                    #Get a list of workItems with PR id 
+                    getWorkItemsURL="$(System.TeamFoundationCollectionUri)/$(System.TeamProject)/_apis/git/repositories/$(Build.Repository.ID)/pullRequests/$pr/workitems?api-version=7.0"
+                    getWorkItemsURL=$(echo $getWorkItemsURL | sed 's/ /%20/g')
+                    echo "getWorkItemsURL : $getWorkItemsURL" 
+          
+                    workItemsResponse=$(curl -s -H "Authorization: Bearer $(System.AccessToken)" -H "Accept: application/json" $getWorkItemsURL)
+                    echo "workItems response: $workItemsResponse"
+                    for workItemId in $(echo "$workItemsResponse" | jq -r '.value[].id'); do 
+                      echo "work Item: $workItemId"
+          
+                      getTagWorkItemURL="$(System.TeamFoundationCollectionUri)/$(System.TeamProject)/_apis/wit/workitems/$workItemId?api-version=7.1-preview.3"
+                      getTagWorkItemURL=$(echo $getTagWorkItemURL | sed 's/ /%20/g')
+                      echo "tagWorkItemURL : $getTagWorkItemURL"
+          
+                        if [ ${#versions[@]} -eq 0 ]; then
+                              echo "No versions tag found."
+                        else
+                              # Print each version
+                              for (( i=1; i<${#versions[@]}; i++ )); do
+
+                              tagResponse=$(curl -X PATCH -H "Authorization: Bearer $(System.AccessToken)" -H "Content-Type: application/json-patch+json" \
+                              -d "[{ \"op\": \"add\", \"path\": \"/fields/System.Tags\", \"value\": \"${versions[i]}\" }]" \
+                              "$getTagWorkItemURL")
+                              
+                              echo "tagResponse: $tagResponse"
+                              done
+                        fi
+                      
+                    done
+                done
+            else
+              echo "No PRs required to tag."
+            fi
+
+            else
+              echo "No PRs found."
+            fi

@@ -1,0 +1,13 @@
+trigger:
+  branches:
+    include:
+      - main
+
+variables:
+  - group: staging
+
+pool: Mobile Pool
+
+stages:
+- template: templates/sonar_qube_scan_stage.yml
+          

@@ -1,0 +1,20 @@
+trigger: none
+
+variables:
+  - group: StagingCredentialGroup
+
+pool:
+  name: "Mobile Pool"
+
+stages:
+- template: templates/check_title_stage.yml
+- template: templates/common_stage.yml
+  parameters:
+    StageDependencies: ['CheckTitleStage']
+- template: templates/sonar_qube_scan_stage.yml
+  parameters:
+    StageDependencies: ['FlutterCleanStage']
+- template: templates/validate_stage_extended.yml
+  parameters:
+    StageDependencies: ['SonarQubeScanStage', 'CommonStage']
+- template: templates/cleanup_source_stage.yml

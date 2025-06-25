@@ -1,0 +1,68 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "flutter-starter-kit-77ebd",
+          "appId": "1:542211545657:android:414cfc82ffe5859a8bcbe8",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "buildConfigurations": {
+          "Debug-staging": {
+            "projectId": "flutter-starter-kit-77ebd",
+            "appId": "1:542211545657:ios:56f50b5089f5f8088bcbe8",
+            "uploadDebugSymbols": true,
+            "fileOutput": "ios/flavors/staging/GoogleService-Info.plist"
+          },
+          "Release-staging": {
+            "projectId": "flutter-starter-kit-77ebd",
+            "appId": "1:542211545657:ios:56f50b5089f5f8088bcbe8",
+            "uploadDebugSymbols": true,
+            "fileOutput": "ios/flavors/staging/GoogleService-Info.plist"
+          },
+          "Profile-staging": {
+            "projectId": "flutter-starter-kit-77ebd",
+            "appId": "1:542211545657:ios:56f50b5089f5f8088bcbe8",
+            "uploadDebugSymbols": true,
+            "fileOutput": "ios/flavors/staging/GoogleService-Info.plist"
+          },
+          "Debug-production": {
+            "projectId": "flutter-starter-kit-77ebd",
+            "appId": "1:542211545657:ios:6cc3e26ec9af81ca8bcbe8",
+            "uploadDebugSymbols": true,
+            "fileOutput": "ios/flavors/production/GoogleService-Info.plist"
+          },
+          "Release-production": {
+            "projectId": "flutter-starter-kit-77ebd",
+            "appId": "1:542211545657:ios:6cc3e26ec9af81ca8bcbe8",
+            "uploadDebugSymbols": true,
+            "fileOutput": "ios/flavors/production/GoogleService-Info.plist"
+          },
+          "Profile-production": {
+            "projectId": "flutter-starter-kit-77ebd",
+            "appId": "1:542211545657:ios:6cc3e26ec9af81ca8bcbe8",
+            "uploadDebugSymbols": true,
+            "fileOutput": "ios/flavors/production/GoogleService-Info.plist"
+          }
+        }
+      },
+      "dart": {
+        "lib/app/assets/firebase_options/staging_firebase_options.dart": {
+          "projectId": "flutter-starter-kit-77ebd",
+          "configurations": {
+            "android": "1:542211545657:android:0bf2301aa9ea76f08bcbe8",
+            "ios": "1:542211545657:ios:56f50b5089f5f8088bcbe8"
+          }
+        },
+        "lib/app/assets/firebase_options/production_firebase_options.dart": {
+          "projectId": "flutter-starter-kit-77ebd",
+          "configurations": {
+            "android": "1:542211545657:android:414cfc82ffe5859a8bcbe8"
+          }
+        }
+      }
+    }
+  }
+}

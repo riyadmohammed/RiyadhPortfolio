@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>manageAppVersionAndBuildNumber</key>
+    <true/>
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>com.dumbdumb.my.stag</key>
+        <string>5bcdf34c-5231-42c8-afa9-9d04aa04340a</string>
+    </dict>
+    <key>signingStyle</key>
+    <string>manual</string>
+    <key>uploadSymbols</key>
+    <true/>
+    <key>teamID</key>
+    <string>CSTTJGR7WG</string>
+    <key>method</key>
+    <string>app-store-connect</string>
+</dict>
+</plist>

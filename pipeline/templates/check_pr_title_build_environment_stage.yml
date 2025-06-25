@@ -1,0 +1,145 @@
+parameters:
+- name: buildEnvironment
+  default: ''
+
+stages:
+  - stage: CheckPRTitleBuildEnvironment
+    displayName: Check Latest PR Title for Environment Info
+    jobs:
+    - job: CheckPRTitleBuildEnvironmentJob
+      timeoutInMinutes: 5
+      steps:
+        - task: PowerShell@2
+          name: CheckPRTitleBuildEnvironmentTask
+          inputs:
+            targetType: 'inline'
+            script: |
+                # Call the Azure DevOps Services Rest API.
+                $url = "$($env:SYSTEM_TEAMFOUNDATIONCOLLECTIONURI)$env:SYSTEM_TEAMPROJECTID/_apis/git/repositories/$(Build.Repository.ID)/pullrequests?searchCriteria.status=completed&searchCriteria.targetRefName=$(Build.SourceBranch)&api-version=7.1-preview.1"
+                $headers = @{
+                  Authorization = "Bearer $(System.AccessToken)"
+                }
+                echo "URL:"
+                echo "$url"
+                $pullRequestInfo = Invoke-RestMethod -Uri $url -Method 'GET' -ContentType 'application/json' -Headers $headers
+
+                $prTitleKeyword = "[Build]"
+  
+                echo "Response:"
+                echo "$pullRequestInfo"
+                $prWithKeyword = $pullRequestInfo.value | Where-Object { $_.title -like "*$prTitleKeyword*" } | Select-Object -First 1
+                
+                echo "Extracted PR (One should be returned): "
+                echo "$prWithKeyword"
+
+                $currentBuildPR = $prWithKeyword
+                $title = $currentBuildPR.title
+                $description = $currentBuildPR.description
+                
+                echo "Title: "
+                echo "$title"
+                echo "Description: "
+                echo "$description"
+
+                # Converting the description string into base64 to allow multiline
+                if (-not [string]::IsNullOrEmpty($description)) {
+                    $base64Description = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($description))
+                    echo $base64Description
+                    echo "##vso[task.setvariable variable=description;isoutput=true]$base64Description"
+                } else {
+                    echo "Description is null or empty. Skipping Base64 conversion."
+                }
+                
+                # Check if the given environment is either Staging or Production 
+                if ($title -match '\[${{ parameters.buildEnvironment }}\]') {
+                    $environment = '${{ parameters.buildEnvironment }}'
+                    echo "##vso[task.setvariable variable=environment;isoutput=true]$environment"
+                    echo "${{ parameters.buildEnvironment }} Env Detected!"
+                } else {
+                    echo "Environment doesnt match. Expected ${{ parameters.buildEnvironment }}. Terminating sequence. Bye!"
+                    exit 1
+                }
+
+                # Check if the PR title contains the phrase '[Build]'
+                if ($title -match '\[Build\]') {
+                    echo "Last PR title contains '[Build]'"
+                      
+                    $titleParts = $title -split ':'
+
+                    # Extract the title parts accordingly
+                    if ($titleParts.Count -eq 3) {
+                        $extractedAndroidVersionStr = $titleParts[1].Trim()
+                        $extractediOSVersionStr = $titleParts[2].Trim()
+
+                        if ($extractedAndroidVersionStr -match '\(([0-9]+)\)') {
+                            $andrVersion = $matches[1]
+                        } else {
+                            $andrVersion = $extractedAndroidVersionStr
+                        }
+                    
+                        if ($extractediOSVersionStr -match '\(([0-9]+)\)') {
+                            $iVersion = $matches[1]
+                        } else {
+                            $iVersion = $extractediOSVersionStr
+                        }
+
+                        # Fetch the version name 
+                        if ($extractedAndroidVersionStr -match '(\d+\.\d+\.\d+)') {
+                            $androidVersionName = $matches[1]
+                        } else {
+                            $androidVersionName = '1.0.0'
+                        }
+
+                        if ($extractediOSVersionStr -match '(\d+\.\d+\.\d+)') {
+                            $iOSVersionName = $matches[1]
+                        } else {
+                            $iOSVersionName = '1.0.0'
+                        }
+                    
+                        echo "androids version build name: $androidVersionName"
+                        echo "androids version build number: $andrVersion"
+                        echo "iOS version build name: $iOSVersionName"
+                        echo "iOS version build number: $iVersion"
+
+                        echo "##vso[task.setvariable variable=androidVersionName;isoutput=true]$androidVersionName"
+                        echo "##vso[task.setvariable variable=androidVersion;isoutput=true]$andrVersion"
+                        
+                        echo "##vso[task.setvariable variable=iosVersionName;isoutput=true]$iOSVersionName"
+                        echo "##vso[task.setvariable variable=iosVersion;isoutput=true]$iVersion"
+                    } elseif ($titleParts.Count -eq 2) {
+                        $extractedPlatformVersionStr = $titleParts[1].Trim()
+
+                        if ($extractedPlatformVersionStr -match '\(([0-9]+)\)') {
+                            $platformVersion = $matches[1]
+                        } else {
+                            $platformVersion = $extractedPlatformVersionStr
+                        }
+
+                        # Fetch the version name 
+                        if ($extractedPlatformVersionStr -match '(\d+\.\d+\.\d+)') {
+                            $platformVersionName = $matches[1]
+                        } else {
+                            $platformVersionName = '1.0.0'
+                        }
+                        
+                        if ($extractedPlatformVersionStr.Contains("Android")) {
+                            echo "Android version build name: $platformVersionName"
+                            echo "Android version build number: $platformVersion"
+
+                            echo "##vso[task.setvariable variable=androidVersionName;isoutput=true]$platformVersionName"
+                            echo "##vso[task.setvariable variable=androidVersion;isoutput=true]$platformVersion"
+                        } elseif ($extractedPlatformVersionStr.Contains("iOS")) {
+                            echo "iOS version build name: $platformVersionName"
+                            echo "iOS version build number: $platformVersion"
+
+                            echo "##vso[task.setvariable variable=iosVersionName;isoutput=true]$platformVersionName"
+                            echo "##vso[task.setvariable variable=iosVersion;isoutput=true]$platformVersion"
+                        }
+                    } else {
+                        echo "Error: title does not match the expected format: [Build][${{ parameters.buildEnvironment }}]:AndroidVersion:iOSVersion || [Build][${{ parameters.buildEnvironment }}]:AndroidVersion || [Build][${{ parameters.buildEnvironment }}]:iOSVersion. Exiting pipeline."
+                        exit 1
+                    }
+                } else {
+                    echo "Last PR title does not contain '[Build]'. Exiting the pipeline."
+                    exit 1
+                }

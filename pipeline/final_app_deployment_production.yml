@@ -1,0 +1,13 @@
+trigger: 
+  branches:
+    include:
+      - development_*
+
+variables:
+- group: ProductionCredentialGroup
+
+pool:
+  name: Mobile Pool
+
+stages:
+- template: templates/app_deployment_stage.yml

@@ -1,0 +1,17 @@
+trigger: none
+
+variables:
+- group: StagingCredentialGroup
+- group: mobsf-group # TODO Add mobsf-group in pipeline's library
+
+pool:
+  name: Mobile Pool
+
+stages:
+  - template: templates/common_stage.yml
+  - template: templates/mobsf_build_android_stage.yml
+    parameters:
+      StageDependencies: ['CommonStage']
+  - template: templates/mobsf_build_ios_stage.yml
+    parameters:
+      StageDependencies: ['CommonStage']

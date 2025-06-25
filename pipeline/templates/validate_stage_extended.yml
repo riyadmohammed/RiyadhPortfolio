@@ -1,0 +1,25 @@
+parameters:
+- name: StageDependencies
+  type: object
+  default: []
+
+stages: 
+  - stage: FlutterCleanBeforeAppBuild
+    dependsOn: ${{ parameters.StageDependencies }}
+    condition: succeeded()
+    jobs:
+    - job: Build
+      timeoutInMinutes: 5
+      steps:
+        - task: FlutterCommand@0
+          displayName: "Flutter Clean"
+          inputs:
+            projectDirectory: '.'
+            flutterDirectory: '/Users/user/fvm/versions/$(flutterVersion)/bin'
+            arguments: 'clean'
+  - template: build_only_android_stage.yml
+    parameters:
+      StageDependencies: [ 'FlutterCleanBeforeAppBuild' ]
+  - template: build_only_ios_stage.yml
+    parameters:
+      StageDependencies: [ 'FlutterCleanBeforeAppBuild']

@@ -1,0 +1,59 @@
+{
+  "english": "English",
+  "bm": "Bahasa Melayu",
+  "mandarin": "中文",
+  "loginTitle": "Login",
+  "@loginTitle": {
+    "description": "Text shown in the AppBar of the Login Page"
+  },
+  "errorTitle": "Error",
+  "@errorTitle": {
+    "description": "Text shown in the title of alert dialog"
+  },
+  "textOk": "OK",
+  "@textOk": {
+    "description": "Text shown in Ok"
+  },
+  "apiRequestFailed": "Oppss.. something went wrong. Please contact admin for assistance.",
+  "jailbrokenWarning": "This device appear to be jailbroken or rooted. There are inherent risks with jailbroken or rooted devices and therefore the further usage of this app is not allowed.",
+  "sessionExpiredMessage": "Your session has expired. Please login again.",
+  "noInternetConnectionPlsTryAgain": "No internet connection is available. Please connect to the internet and try again.",
+  "remoteConfigForceUpdateMessage": "Please update to latest version of {appName} to continue access to the app features.",
+  "@remoteConfigForceUpdateMessage": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
+  "remoteConfigLatestUpdateMessage": "There is a newer version of {appName}, would you like to update?",
+  "@remoteConfigLatestUpdateMessage": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
+  "update": "Update",
+  "updateAvailable": "Update Available",
+  "updateRequired": "Update Required",
+  "cancel": "Cancel",
+  "settings": "Settings",
+  "permissionNeeded": "Permission Needed",
+  "noPhotosPermissionMessage": "{appName} does not have access to your photos. To enable access, tap Settings and turn on Photos.",
+  "@noPhotosPermissionMessage": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
+  "underMaintenanceTitle": "We'll Be Back Soon!",
+  "underMaintenanceMessage": "Our app is currently undergoing maintenance. We appreciate your patience and will be back shortly.",
+  "noVenueFound": "No Venue Found",
+  "@noVenueFound": {
+    "description": "TODO: Remove this string in the actual project"
+  },
+  "failedToGetRecaptchaToken": "Failed to get reCAPTCHA token",
+  "failedToInitializeRecaptcha": "Failed to initialize reCAPTCHA"
+}
